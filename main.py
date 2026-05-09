@@ -344,8 +344,7 @@ class ccb(Star):
             return
 
         top5 = sorted(group_data, key=lambda x: int(x.get(a2, 0)), reverse=True)[:5]
-        msg = "被ccb排行榜 TOP5：
-"
+        msg = "被ccb排行榜 TOP5：\\n"
         for i, r in enumerate(top5, 1):
             uid = r[a1]
             nick = uid
@@ -356,8 +355,7 @@ class ccb(Star):
                     nick = stranger_info.get("nick", nick)
                 except:
                     pass
-            msg += f"{i}. {nick} - 次数：{r[a2]}
-"
+            msg += f"{i}. {nick} - 次数：{r[a2]}\\n"
         yield event.plain_result(msg)
 
     # ── /ccbvol ─────────────────────────────────────
@@ -373,8 +371,7 @@ class ccb(Star):
             return
 
         top5 = sorted(group_data, key=lambda x: float(x.get(a3, 0)), reverse=True)[:5]
-        msg = "被注入量排行榜 TOP5：
-"
+        msg = "被注入量排行榜 TOP5：\\n"
         for i, r in enumerate(top5, 1):
             uid = r[a1]
             nick = uid
@@ -385,8 +382,7 @@ class ccb(Star):
                     nick = stranger_info.get("nick", nick)
                 except:
                     pass
-            msg += f"{i}. {nick} - 累计注入：{float(r[a3]):.2f}ml
-"
+            msg += f"{i}. {nick} - 累计注入：{float(r[a3]):.2f}ml\\n"
         yield event.plain_result(msg)
 
     # ── /ccbinfo ────────────────────────────────────
@@ -457,16 +453,11 @@ class ccb(Star):
                 pass
 
         msg = (
-            f"【{record.get(a1)} 】
-"
-            f"• 破壁人：{first_nick}
-"
-            f"• 北朝：{total_num}
-"
-            f"• 朝壁：{cb_total}
-"
-            f"• 诗经：{total_vol:.2f}ml
-"
+            f"【{record.get(a1)} 】\n"
+            f"• 破壁人：{first_nick}\n"
+            f"• 北朝：{total_num}\n"
+            f"• 朝壁：{cb_total}\n"
+            f"• 诗经：{total_vol:.2f}ml\n"
             f"• 马克思：{max_val:.2f}ml"
         )
         yield event.plain_result(msg)
@@ -502,8 +493,7 @@ class ccb(Star):
         entries.sort(key=lambda x: x[1], reverse=True)
         top5 = entries[:5]
 
-        msg = "单次最大注入排行榜 TOP5：
-"
+        msg = "单次最大注入排行榜 TOP5：\\n"
         for i, (r, max_val) in enumerate(top5, 1):
             uid = r.get(a1)
             producer_id = None
@@ -538,8 +528,7 @@ class ccb(Star):
                 except Exception:
                     pass
 
-            msg += f"{i}. {nick} - 单次最大：{max_val:.2f}ml（{producer_nick}）
-"
+            msg += f"{i}. {nick} - 单次最大：{max_val:.2f}ml（{producer_nick}）\\n"
 
         yield event.plain_result(msg)
 
@@ -578,8 +567,7 @@ class ccb(Star):
         ranking.sort(key=lambda x: x[1], reverse=True)
         top5 = ranking[:5]
 
-        msg = "💎 小南梁 TOP5 💎
-"
+        msg = "💎 小南梁 TOP5 💎\\n"
         for idx, (uid, xnn_val) in enumerate(ranking[:5], 1):
             nick = uid
             if event.get_platform_name() == "aiocqhttp":
@@ -590,8 +578,7 @@ class ccb(Star):
                     nick = info.get("nick", nick)
                 except:
                     pass
-            msg += f"{idx}. {nick} - XNN值：{xnn_val:.2f} 
-"
+            msg += f"{idx}. {nick} - XNN值：{xnn_val:.2f} \\n"
 
         yield event.plain_result(msg)
 
@@ -651,12 +638,9 @@ class ccb(Star):
         self.write_data(all_data)
 
         msg = (
-            f"🧹 已清除 {target_nick} 的 CCB 记录：
-"
-            f"• 删除自身被CCB记录：{removed_self} 条
-"
-            f"• 移除朝壁他人记录：{removed_from_others} 次
-"
+            f"🧹 已清除 {target_nick} 的 CCB 记录：\n"
+            f"• 删除自身被CCB记录：{removed_self} 条\n"
+            f"• 移除朝壁他人记录：{removed_from_others} 次\n"
             f"• 相关数据已重新校准"
         )
         yield event.plain_result(msg)
