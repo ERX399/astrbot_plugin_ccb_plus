@@ -29,6 +29,12 @@
     "default": [],
     "hint": "当目标在此列表中时，不能对其ccb。"
   },
+  "group_white_list": {
+    "description": "白名单群聊列表",
+    "type": "list",
+    "default": [],
+    "hint": "仅在列表中的群聊可使用本插件功能。留空则不限制（所有群聊可用）。"
+  },
   "self_ccb": {
     "description": "是否允许0721",
     "type": "bool",
