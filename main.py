@@ -29,7 +29,7 @@ def makeit(group_data, target_user_id):
     return 1 if any(item.get(a1) == target_user_id for item in group_data) else 2
 
 
-@register("ccb", "Koikokokokoro", "和群友赛博sex的插件PLUS：群聊白名单、管理清理、防CCB、管理员配置超级暴击、管理员额外暴击", "1.2.1")
+@register("ccb", "Koikokokokoro", "和群友赛博sex的插件PLUS：群聊白名单、管理清理、防CCB、管理员配置暴击增强", "1.2.2")
 class ccb(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
@@ -50,7 +50,6 @@ class ccb(Star):
         # 管理员额外暴击率
         self.admin_extra_crit_enabled = config.get("admin_extra_crit_enabled", False)
         self.admin_extra_crit_bonus = config.get("admin_extra_crit_bonus", 0.3)
-        self.admin_extra_crit_state = {}
 
     def _check_group(self, group_id: str) -> bool:
         gl = [str(g) for g in self.group_white_list]
@@ -211,11 +210,7 @@ class ccb(Star):
         is_log = self.is_log
 
         crit_prob = float(self.crit_prob or 0)
-        if (
-            self.admin_extra_crit_enabled
-            and await self._is_admin(event)
-            and self.admin_extra_crit_state.get(send_id, False)
-        ):
+        if self.admin_extra_crit_enabled and await self._is_admin(event):
             crit_prob += float(self.admin_extra_crit_bonus or 0)
         crit_prob = max(0.0, min(1.0, crit_prob))
 
@@ -708,24 +703,3 @@ class ccb(Star):
             self.white_list.append(target_user_id)
             self._save_white_list()
             yield event.plain_result(f"已将 {target_nick} 加入防CCB保护名单，任何人都不能对其CCB")
-
-    # ── /ccbadmincrit (管理员) ───────────────────────
-    @ccb_group.command("ccbadmincrit")
-    async def cmd_ccbadmincrit(self, event: AstrMessageEvent):
-        """管理员指令：切换自己的额外暴击率状态。用法：/ccb ccbadmincrit；需在配置中启用 admin_extra_crit_enabled。"""
-        if not await self._is_admin(event):
-            yield event.plain_result("只有 AstrBot 管理员才能使用此命令")
-            return
-        if not self.admin_extra_crit_enabled:
-            yield event.plain_result("管理员额外暴击率功能未在插件配置中启用")
-            return
-
-        sender_id = str(event.get_sender_id())
-        current = self.admin_extra_crit_state.get(sender_id, False)
-        new_state = not current
-        self.admin_extra_crit_state[sender_id] = new_state
-        total_prob = float(self.crit_prob or 0) + (float(self.admin_extra_crit_bonus or 0) if new_state else 0)
-        total_prob = max(0.0, min(1.0, total_prob))
-        yield event.plain_result(
-            f"管理员额外暴击率已{'开启' if new_state else '关闭'}（当前总暴击率：{total_prob:.2%}）"
-        )
