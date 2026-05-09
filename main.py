@@ -29,7 +29,7 @@ def makeit(group_data, target_user_id):
     return 1 if any(item.get(a1) == target_user_id for item in group_data) else 2
 
 
-@register("ccb", "Koikokokokoro", "和群友赛博sex的插件PLUS Beta：群聊白名单、默认白名单保护、管理清理、防CCB、管理员暴击增强", "1.2.5-beta")
+@register("ccb", "Koikokokokoro", "和群友赛博sex的插件PLUS Beta：群聊白名单、默认白名单保护、管理清理、防CCB、管理员暴击增强", "1.2.6-beta")
 class ccb(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
@@ -180,9 +180,9 @@ class ccb(Star):
                 pass
         return nickname
 
-    # ── 指令组 ────────────────────────────────────────
-    @filter.command_group("ccb")
-    async def ccb_group(self, event: AstrMessageEvent):
+    # ── /ccb ─────────────────────────────────────────
+    @filter.command("ccb")
+    async def cmd_ccb(self, event: AstrMessageEvent):
         """对目标进行 CCB。用法：/ccb [@目标]；未 @ 时默认自己。"""
 
         """对目标进行 CCB。用法：/ccb ccb [@目标]；未 @ 时默认自己。"""
@@ -382,9 +382,9 @@ class ccb(Star):
 
 
     # ── /ccbtop ──────────────────────────────────────
-    @ccb_group.command("ccbtop")
+    @filter.command("ccbtop")
     async def cmd_ccbtop(self, event: AstrMessageEvent):
-        """查看当前群被 CCB 次数排行榜 TOP5。用法：/ccb ccbtop"""
+        """查看当前群被 CCB 次数排行榜 TOP5。用法：/ccbtop"""
         group_id = str(event.get_group_id())
         if not self._check_group(group_id):
             return
@@ -410,9 +410,9 @@ class ccb(Star):
         yield event.plain_result(msg)
 
     # ── /ccbvol ─────────────────────────────────────
-    @ccb_group.command("ccbvol")
+    @filter.command("ccbvol")
     async def cmd_ccbvol(self, event: AstrMessageEvent):
-        """查看当前群累计注入量排行榜 TOP5。用法：/ccb ccbvol"""
+        """查看当前群累计注入量排行榜 TOP5。用法：/ccbvol"""
         group_id = str(event.get_group_id())
         if not self._check_group(group_id):
             return
@@ -438,9 +438,9 @@ class ccb(Star):
         yield event.plain_result(msg)
 
     # ── /ccbinfo ────────────────────────────────────
-    @ccb_group.command("ccbinfo")
+    @filter.command("ccbinfo")
     async def cmd_ccbinfo(self, event: AstrMessageEvent):
-        """查询某人的 CCB 统计信息。用法：/ccb ccbinfo [@目标]；未 @ 时查询自己。"""
+        """查询某人的 CCB 统计信息。用法：/ccbinfo [@目标]；未 @ 时查询自己。"""
         group_id = str(event.get_group_id())
         if not self._check_group(group_id):
             return
@@ -512,9 +512,9 @@ class ccb(Star):
         yield event.plain_result(msg)
 
     # ── /ccbmax ─────────────────────────────────────
-    @ccb_group.command("ccbmax")
+    @filter.command("ccbmax")
     async def cmd_ccbmax(self, event: AstrMessageEvent):
-        """查看当前群单次最大注入排行榜 TOP5。用法：/ccb ccbmax"""
+        """查看当前群单次最大注入排行榜 TOP5。用法：/ccbmax"""
         group_id = str(event.get_group_id())
         if not self._check_group(group_id):
             return
@@ -583,9 +583,9 @@ class ccb(Star):
         yield event.plain_result(msg)
 
     # ── /xnn ────────────────────────────────────────
-    @ccb_group.command("xnn")
+    @filter.command("xnn")
     async def cmd_xnn(self, event: AstrMessageEvent):
-        """查看当前群小南梁排行榜 TOP5。用法：/ccb xnn"""
+        """查看当前群小南梁排行榜 TOP5。用法：/xnn"""
         w_num = 1.0
         w_vol = 0.1
         w_action = 0.5
@@ -634,9 +634,9 @@ class ccb(Star):
         yield event.plain_result(msg)
 
     # ── /ccbclear (管理员) ───────────────────────────
-    @ccb_group.command("ccbclear")
+    @filter.command("ccbclear")
     async def cmd_ccbclear(self, event: AstrMessageEvent):
-        """管理员指令：清除目标的被 CCB 与 CCB 他人记录。用法：/ccb ccbclear [@目标]；未 @ 时默认自己。"""
+        """管理员指令：清除目标的被 CCB 与 CCB 他人记录。用法：/ccbclear [@目标]；未 @ 时默认自己。"""
         if not await self._is_admin(event):
             yield event.plain_result("只有 AstrBot 管理员才能使用此命令")
             return
@@ -694,9 +694,9 @@ class ccb(Star):
         yield event.plain_result(msg)
 
     # ── /ccbnodo (管理员) ────────────────────────────
-    @ccb_group.command("ccbnodo")
+    @filter.command("ccbnodo")
     async def cmd_ccbnodo(self, event: AstrMessageEvent):
-        """管理员指令：切换目标防被 CCB 状态。用法：/ccb ccbnodo [@目标]；未 @ 时默认自己。"""
+        """管理员指令：切换目标防被 CCB 状态。用法：/ccbnodo [@目标]；未 @ 时默认自己。"""
         if not await self._is_admin(event):
             yield event.plain_result("只有 AstrBot 管理员才能使用此命令")
             return
