@@ -79,7 +79,7 @@ class DailyGroupLimiter:
         return data[today][str(group_id)]
 
 
-@register("ccb", "Koikokokokoro", "和群友赛博sex的插件PLUS Beta：群聊白名单、每日次数限制、默认白名单保护、管理清理、防CCB、管理员暴击增强", "1.2.7-beta")
+@register("ccb", "Koikokokokoro", "和群友赛博sex的插件PLUS Beta：群聊白名单、每日次数限制、默认白名单保护、管理清理、防CCB、管理员暴击增强", "1.2.8-beta")
 class ccb(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
@@ -102,8 +102,14 @@ class ccb(Star):
         self.admin_extra_crit_enabled = config.get("admin_extra_crit_enabled", False)
         self.admin_extra_crit_bonus = config.get("admin_extra_crit_bonus", 0.3)
 
-        # 群聊每日 CCB 次数限制模块
-        self.group_daily_ccb_limit = int(config.get("group_daily_ccb_limit", 0) or 0)
+        # 群聊限制配置模块
+        group_limit_config = config.get("group_limit", {}) or {}
+        self.group_daily_ccb_limit = int(
+            group_limit_config.get(
+                "daily_ccb_limit",
+                config.get("group_daily_ccb_limit", 0)  # 兼容旧配置
+            ) or 0
+        )
         self.daily_limiter = DailyGroupLimiter(DAILY_LIMIT_FILE)
 
     def _check_group(self, group_id: str) -> bool:
