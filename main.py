@@ -79,7 +79,7 @@ class DailyGroupLimiter:
         return data[today][str(group_id)]
 
 
-@register("ccb", "Koikokokokoro", "和群友赛博sex的插件PLUS Beta：群聊白名单、群单独限制、默认白名单保护、管理清理、防CCB、管理员折叠配置", "1.3.1-beta")
+@register("ccb", "Koikokokoro", "和群友赛博sex的插件PLUS Beta：群聊白名单、群单独限制、默认白名单保护、管理清理、防CCB、显示设置、管理员折叠配置", "1.3.2-beta")
 class ccb(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
@@ -96,6 +96,12 @@ class ccb(Star):
         self._sync_default_white_list()
         self.crit_prob = self.config.get("crit_prob")
         self.is_log = self.config.get("is_log")
+
+        # 显示设置（兼容旧版顶层配置）
+        display_settings = config.get("display_settings", {}) or {}
+        self.show_avatar = display_settings.get("show_avatar", config.get("show_avatar", True))
+        self.use_forward_message = display_settings.get("use_forward_message", config.get("use_forward_message", False))
+
         # 管理员折叠配置（兼容旧版顶层配置）
         admin_settings = config.get("admin_settings", {}) or {}
         self.super_crit_enabled = admin_settings.get(
@@ -273,6 +279,45 @@ class ccb(Star):
                 pass
         return nickname
 
+    async def _send_ccb_result(self, event: AstrMessageEvent, texts: list[str], image_url: str | None = None):
+        """发送CCB结果；支持普通消息、可选头像、可选合并转发。"""
+        chain = []
+        for index, text in enumerate(texts):
+            if text:
+                chain.append(Comp.Plain(text))
+            if index == 0 and self.show_avatar and image_url:
+                chain.append(Comp.Image.fromURL(image_url))
+
+        if self.use_forward_message and event.get_platform_name() == "aiocqhttp":
+            try:
+                group_id = event.get_group_id()
+                self_id = str(event.get_self_id())
+                nodes = []
+                message = []
+                for index, text in enumerate(texts):
+                    if text:
+                        message.append({"type": "text", "data": {"text": text}})
+                    if index == 0 and self.show_avatar and image_url:
+                        message.append({"type": "image", "data": {"file": image_url}})
+                nodes.append({
+                    "type": "node",
+                    "data": {
+                        "name": "CCB PLUS Beta",
+                        "uin": self_id,
+                        "content": message
+                    }
+                })
+                await event.bot.api.call_action(
+                    "send_group_forward_msg",
+                    group_id=group_id,
+                    messages=nodes
+                )
+                return
+            except Exception as e:
+                logger.warning(f"send forward message failed, fallback to chain_result: {e}")
+
+        yield event.chain_result(chain)
+
     # ── /ccb ─────────────────────────────────────────
     @filter.command("ccb")
     async def cmd_ccb(self, event: AstrMessageEvent):
@@ -320,7 +365,7 @@ class ccb(Star):
                 'get_stranger_info', user_id=target_user_id
             )
             nickname = stranger_info.get("nick", target_user_id)
-            yield event.plain_result(f"{nickname} 的后门被后户之神霸占了，不能ccb（悲")
+            yield event.plain_result(f"{nickname} 的后门受保护，不能ccb（悲")
             return
 
         if target_user_id == actor_id and not self.selfdo:
@@ -404,18 +449,17 @@ class ccb(Star):
                         crit_text = "💥 暴击！"
 
                         if crit:
-                            chain = [
-                                Comp.Plain(f"你和{nickname}发生了{duration}min长的ccb行为，向ta注入了 {crit_text}{V:.2f}ml的生命因子"),
-                                Comp.Image.fromURL(pic),
-                                Comp.Plain(f"这是ta的第{item[a2]}次")
+                            texts = [
+                                f"你和{nickname}发生了{duration}min长的ccb行为，向ta注入了 {crit_text}{V:.2f}ml的生命因子",
+                                f"这是ta的第{item[a2]}次"
                             ]
                         else:
-                            chain = [
-                                Comp.Plain(f"你和{nickname}发生了{duration}min长的ccb行为，向ta注入了{V:.2f}ml的生命因子"),
-                                Comp.Image.fromURL(pic),
-                                Comp.Plain(f"这是ta的第{item[a2]}次")
+                            texts = [
+                                f"你和{nickname}发生了{duration}min长的ccb行为，向ta注入了{V:.2f}ml的生命因子",
+                                f"这是ta的第{item[a2]}次"
                             ]
-                        yield event.chain_result(chain)
+                        async for result in self._send_ccb_result(event, texts, pic):
+                            yield result
 
                         if is_log:
                             try:
@@ -447,12 +491,12 @@ class ccb(Star):
                     )
                     nickname = stranger_info.get("nick", nickname)
 
-                chain = [
-                    Comp.Plain(f"你和{nickname}发生了{duration}min长的ccb行为，向ta注入了{V:.2f}ml的生命因子"),
-                    Comp.Image.fromURL(pic),
-                    Comp.Plain("这是ta的初体验")
+                texts = [
+                    f"你和{nickname}发生了{duration}min长的ccb行为，向ta注入了{V:.2f}ml的生命因子",
+                    "这是ta的初体验"
                 ]
-                yield event.chain_result(chain)
+                async for result in self._send_ccb_result(event, texts, pic):
+                    yield result
 
                 new_record = {
                     a1: target_user_id,
