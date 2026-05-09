@@ -29,7 +29,7 @@ def makeit(group_data, target_user_id):
     return 1 if any(item.get(a1) == target_user_id for item in group_data) else 2
 
 
-@register("ccb", "Koikokokokoro", "和群友赛博sex的插件PLUS Beta：群聊白名单、默认白名单保护、管理清理、防CCB、管理员暴击增强", "1.2.4-beta")
+@register("ccb", "Koikokokokoro", "和群友赛博sex的插件PLUS Beta：群聊白名单、默认白名单保护、管理清理、防CCB、管理员暴击增强", "1.2.5-beta")
 class ccb(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
@@ -182,13 +182,9 @@ class ccb(Star):
 
     # ── 指令组 ────────────────────────────────────────
     @filter.command_group("ccb")
-    def ccb_group(self):
-        """CCB 指令组。包含 CCB、排行、查询、管理清理、防CCB与管理员暴击增强等功能。"""
-        pass
+    async def ccb_group(self, event: AstrMessageEvent):
+        """对目标进行 CCB。用法：/ccb [@目标]；未 @ 时默认自己。"""
 
-    # ── /ccb ─────────────────────────────────────────
-    @ccb_group.command("ccb")
-    async def cmd_ccb(self, event: AstrMessageEvent):
         """对目标进行 CCB。用法：/ccb ccb [@目标]；未 @ 时默认自己。"""
         group_id = str(event.get_group_id())
         if not self._check_group(group_id):
@@ -383,6 +379,7 @@ class ccb(Star):
                 logger.error(f"error: {e}")
                 yield event.plain_result("对方拒绝了和你ccb")
                 return
+
 
     # ── /ccbtop ──────────────────────────────────────
     @ccb_group.command("ccbtop")
