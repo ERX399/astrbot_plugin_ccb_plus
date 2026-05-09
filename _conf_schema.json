@@ -48,16 +48,16 @@
     "hint": "ccb时暴击的概率。"
   },
   "super_crit_enabled": {
-    "description": "是否允许管理员超级暴击",
+    "description": "是否启用管理员超级暴击",
     "type": "bool",
     "default": false,
-    "hint": "开启后，管理员可用ccbsuper切换超级暴击，暴击时使用超级倍率。"
+    "hint": "开启后，AstrBot管理员触发暴击时自动使用超级倍率，无需指令开关。"
   },
   "super_crit_multiplier": {
     "description": "管理员超级暴击倍率",
     "type": "float",
     "default": 5.0,
-    "hint": "管理员超级暴击时的注入量倍率（默认5.0，即5倍）。"
+    "hint": "管理员暴击时的注入量倍率（默认5.0，即5倍）。"
   },
   "is_log": {
     "description": "完整日志记录",
