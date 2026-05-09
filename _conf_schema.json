@@ -47,6 +47,18 @@
     "default": 0.2,
     "hint": "ccb时暴击的概率。"
   },
+  "super_crit_enabled": {
+    "description": "是否允许管理员超级暴击",
+    "type": "bool",
+    "default": false,
+    "hint": "开启后，管理员可用ccbsuper切换超级暴击，暴击时使用超级倍率。"
+  },
+  "super_crit_multiplier": {
+    "description": "管理员超级暴击倍率",
+    "type": "float",
+    "default": 5.0,
+    "hint": "管理员超级暴击时的注入量倍率（默认5.0，即5倍）。"
+  },
   "is_log": {
     "description": "完整日志记录",
     "type": "bool",
