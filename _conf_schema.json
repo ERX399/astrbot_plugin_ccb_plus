@@ -27,19 +27,7 @@
     "description": "不能进行ccb的id列表",
     "type": "list",
     "default": [],
-    "hint": "目标在此列表中时，不能对其ccb；管理员/bot自动保护开启后也会同步显示到这里。"
-  },
-  "protect_admins": {
-    "description": "默认保护AstrBot管理员",
-    "type": "bool",
-    "default": true,
-    "hint": "开启后会自动把AstrBot管理员加入 white_list，并在配置中显示。"
-  },
-  "protect_bot": {
-    "description": "默认保护机器人自身",
-    "type": "bool",
-    "default": true,
-    "hint": "开启后会自动把机器人自身ID加入 white_list，并在配置中显示。"
+    "hint": "目标在此列表中时不能被ccb；插件会默认把AstrBot管理员和机器人自身ID加入此列表。"
   },
   "group_white_list": {
     "description": "白名单群聊列表",
