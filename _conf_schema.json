@@ -77,29 +77,42 @@
     "default": 0.2,
     "hint": "ccb时暴击的概率。"
   },
-  "super_crit_enabled": {
-    "description": "是否启用管理员超级暴击",
-    "type": "bool",
-    "default": false,
-    "hint": "开启后，AstrBot管理员触发暴击时自动使用超级倍率，无需指令开关。"
-  },
-  "super_crit_multiplier": {
-    "description": "管理员超级暴击倍率",
-    "type": "float",
-    "default": 5.0,
-    "hint": "管理员暴击时的注入量倍率（默认5.0，即5倍）。"
-  },
-  "admin_extra_crit_enabled": {
-    "description": "是否启用管理员额外暴击率",
-    "type": "bool",
-    "default": false,
-    "hint": "开启后，AstrBot管理员自动获得额外暴击率，无需指令开关。"
-  },
-  "admin_extra_crit_bonus": {
-    "description": "管理员额外暴击率",
-    "type": "float",
-    "default": 0.3,
-    "hint": "管理员在 crit_prob 基础上额外增加的暴击概率，最终概率限制在0~1。"
+  "admin_settings": {
+    "description": "管理员设置",
+    "type": "object",
+    "hint": "点击展开配置管理员专属暴击增强参数。",
+    "items": {
+      "super_crit_enabled": {
+        "description": "是否启用管理员超级暴击",
+        "type": "bool",
+        "default": false,
+        "hint": "开启后，AstrBot管理员触发暴击时自动使用超级倍率，无需指令开关。"
+      },
+      "super_crit_multiplier": {
+        "description": "管理员超级暴击倍率",
+        "type": "float",
+        "default": 5.0,
+        "hint": "管理员暴击时的注入量倍率（默认5.0，即5倍）。"
+      },
+      "extra_crit_enabled": {
+        "description": "是否启用管理员额外暴击率",
+        "type": "bool",
+        "default": false,
+        "hint": "开启后，AstrBot管理员自动获得额外暴击率，无需指令开关。"
+      },
+      "extra_crit_bonus": {
+        "description": "管理员额外暴击率",
+        "type": "float",
+        "default": 0.3,
+        "hint": "管理员在普通暴击概率基础上额外增加的暴击概率，最终概率限制在0~1。"
+      },
+      "exempt_yw": {
+        "description": "管理员豁免养胃",
+        "type": "bool",
+        "default": false,
+        "hint": "开启后，AstrBot管理员不会触发频率养胃和随机养胃，也不会被养胃状态拦截。"
+      }
+    }
   },
   "is_log": {
     "description": "完整日志记录",
