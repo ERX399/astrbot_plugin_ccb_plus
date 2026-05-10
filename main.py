@@ -122,12 +122,16 @@ class ccb(Star):
         # 群聊单独限制配置模块
         self.group_configs = config.get("group_configs", []) or []
         self.daily_limiter = DailyGroupLimiter(DAILY_LIMIT_FILE)
+        logger.info("[CCB_PLUS] Plugin loaded successfully. group_white_list=%s, is_log=%s", self.group_white_list, self.is_log)
 
     def _check_group(self, group_id: str) -> bool:
         gl = [str(g) for g in self.group_white_list]
         if not gl:
             return True
-        return str(group_id) in gl
+        allowed = str(group_id) in gl
+        if not allowed:
+            logger.info(f"[CCB_PLUS] Group {group_id} not in group_white_list, command ignored.")
+        return allowed
 
     def _iter_group_configs(self):
         """兼容 AstrBot template_list 可能返回的 list/dict 结构。"""
