@@ -717,8 +717,8 @@ class ccb(Star):
                     nick = stranger_info.get("nick", nick)
                 except:
                     pass
-            msg += f"{i}. {nick} - 次数：{r[a2]}\n"
-        yield event.plain_result(msg)
+            msg += f"{i}. {nick}({uid}) - 次数：{r[a2]}\n"
+        yield event.plain_result(msg.rstrip())
 
     # ── /ccbvol ─────────────────────────────────────
     @filter.command("ccbvol")
@@ -745,8 +745,8 @@ class ccb(Star):
                     nick = stranger_info.get("nick", nick)
                 except:
                     pass
-            msg += f"{i}. {nick} - 累计注入：{float(r[a3]):.2f}ml\n"
-        yield event.plain_result(msg)
+            msg += f"{i}. {nick}({uid}) - 累计注入：{float(r[a3]):.2f}ml\n"
+        yield event.plain_result(msg.rstrip())
 
     # ── /ccbinfo ────────────────────────────────────
     @filter.command("ccbinfo")
@@ -888,9 +888,9 @@ class ccb(Star):
                 except Exception:
                     pass
 
-            msg += f"{i}. {nick} - 单次最大：{max_val:.2f}ml（{producer_nick}）\n"
+            msg += f"{i}. {nick}({uid}) - 单次最大：{max_val:.2f}ml（{producer_nick}）\n"
 
-        yield event.plain_result(msg)
+        yield event.plain_result(msg.rstrip())
 
     # ── /xnn ────────────────────────────────────────
     @filter.command("xnn")
@@ -939,9 +939,9 @@ class ccb(Star):
                     nick = info.get("nick", nick)
                 except:
                     pass
-            msg += f"{idx}. {nick} - XNN值：{xnn_val:.2f} \n"
+            msg += f"{idx}. {nick}({uid}) - XNN值：{xnn_val:.2f} \n"
 
-        yield event.plain_result(msg)
+        yield event.plain_result(msg.rstrip())
 
     # ── /ccbclear (管理员) ───────────────────────────
     @filter.command("ccbclear")
