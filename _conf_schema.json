@@ -81,10 +81,10 @@
             "default": true
           },
           "daily_ccb_limit": {
-            "description": "每日CCB次数上限",
+            "description": "每人每日CCB次数上限",
             "type": "int",
             "default": 0,
-            "hint": "此群每天最多执行多少次 /ccb；0 或负数表示不限制。"
+            "hint": "此群内每人每天最多执行多少次 /ccb；0 或负数表示不限制。"
           }
         }
       }
