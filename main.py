@@ -252,26 +252,101 @@ class ccb(Star):
         except Exception as e:
             logger.error(f"write error: {e}")
 
-    def append_log(self, gid, eid, tid, dur, vol, extra: dict | None = None):
+    def read_log(self):
         try:
             if os.path.exists(LOG_FILE):
-                with open(LOG_FILE, 'r', encoding='utf-8') as lf:
-                    try:
-                        logs = json.load(lf)
-                        if not isinstance(logs, list):
-                            logs = []
-                    except Exception:
-                        logs = []
-            else:
-                logs = []
+                with open(LOG_FILE, "r", encoding="utf-8") as lf:
+                    data = json.load(lf)
+                    return data if isinstance(data, list) else []
+        except Exception as e:
+            logger.error(f"read log error: {e}")
+        return []
+
+    def append_log(self, gid, eid, tid, dur, vol, extra: dict | None = None):
+        try:
+            logs = self.read_log()
             entry = {"group": gid, "executor": eid, "target": tid, "time": dur, "vol": str(round(float(vol), 2))}
             if isinstance(extra, dict):
                 entry.update(extra)
             logs.append(entry)
+            self._ensure_data_dir()
             with open(LOG_FILE, 'w', encoding='utf-8') as lf:
                 json.dump(logs, lf, ensure_ascii=False, indent=2)
         except Exception as e:
             logger.error(f"append_log error: {e}")
+
+    def _build_group_log_records(self, group_id: str) -> tuple[list[dict], dict[str, int]]:
+        """把完整日志聚合成与 ccb.json 类似的群统计结构。"""
+        gid = str(group_id)
+        logs = self.read_log()
+        target_map: dict[str, dict] = {}
+        actor_actions: dict[str, int] = {}
+
+        for entry in logs:
+            if str(entry.get("group")) != gid:
+                continue
+            target_id = str(entry.get("target", "")).strip()
+            executor_id = str(entry.get("executor", "")).strip()
+            if not target_id or not executor_id:
+                continue
+
+            try:
+                vol = float(entry.get("vol", 0) or 0)
+            except Exception:
+                vol = 0.0
+
+            item = target_map.setdefault(target_id, {
+                a1: target_id,
+                a2: 0,
+                a3: 0.0,
+                a4: {},
+                a5: 0.0,
+                "_first_actor": None,
+                "_max_actor": None
+            })
+
+            item[a2] = int(item.get(a2, 0)) + 1
+            item[a3] = round(float(item.get(a3, 0)) + vol, 2)
+
+            ccb_by = item.get(a4, {}) or {}
+            if executor_id in ccb_by:
+                ccb_by[executor_id]["count"] = int(ccb_by[executor_id].get("count", 0)) + 1
+            else:
+                ccb_by[executor_id] = {"count": 1, "first": False, "max": False}
+
+            if item.get("_first_actor") is None:
+                item["_first_actor"] = executor_id
+                ccb_by[executor_id]["first"] = True
+
+            actor_actions[executor_id] = actor_actions.get(executor_id, 0) + 1
+
+            current_max = float(item.get(a5, 0) or 0)
+            if vol > current_max:
+                item[a5] = round(vol, 2)
+                item["_max_actor"] = executor_id
+
+            item[a4] = ccb_by
+
+        records = []
+        for item in target_map.values():
+            ccb_by = item.get(a4, {}) or {}
+            max_actor = item.get("_max_actor")
+            for actor_id in ccb_by:
+                ccb_by[actor_id]["max"] = (actor_id == max_actor)
+            item.pop("_first_actor", None)
+            item.pop("_max_actor", None)
+            records.append(item)
+
+        return records, actor_actions
+
+    def _get_group_records(self, group_id: str) -> tuple[list[dict], dict[str, int]]:
+        """优先使用日志聚合；没有日志或日志不可用时回退主数据。"""
+        if self.is_log:
+            records, actor_actions = self._build_group_log_records(group_id)
+            if records:
+                return records, actor_actions
+        group_data = self.read_data().get(str(group_id), [])
+        return (group_data if isinstance(group_data, list) else []), {}
 
     def _build_log_extra(self, group_data: list, target_user_id: str, executor_id: str, crit: bool = False) -> dict:
         """为完整日志补充当前统计快照，保留原日志字段并追加次数/累计等信息。"""
@@ -625,13 +700,13 @@ class ccb(Star):
         if not self._check_group(group_id):
             return
 
-        group_data = self.read_data().get(group_id, [])
+        group_data, _ = self._get_group_records(group_id)
         if not group_data:
             yield event.plain_result("当前群暂无ccb记录")
             return
 
         top5 = sorted(group_data, key=lambda x: int(x.get(a2, 0)), reverse=True)[:5]
-        msg = "被ccb排行榜 TOP5：\\n"
+        msg = "被ccb排行榜 TOP5：\n"
         for i, r in enumerate(top5, 1):
             uid = r[a1]
             nick = uid
@@ -642,7 +717,7 @@ class ccb(Star):
                     nick = stranger_info.get("nick", nick)
                 except:
                     pass
-            msg += f"{i}. {nick} - 次数：{r[a2]}\\n"
+            msg += f"{i}. {nick} - 次数：{r[a2]}\n"
         yield event.plain_result(msg)
 
     # ── /ccbvol ─────────────────────────────────────
@@ -653,13 +728,13 @@ class ccb(Star):
         if not self._check_group(group_id):
             return
 
-        group_data = self.read_data().get(group_id, [])
+        group_data, _ = self._get_group_records(group_id)
         if not group_data:
             yield event.plain_result("当前群暂无ccb记录")
             return
 
         top5 = sorted(group_data, key=lambda x: float(x.get(a3, 0)), reverse=True)[:5]
-        msg = "被注入量排行榜 TOP5：\\n"
+        msg = "被注入量排行榜 TOP5：\n"
         for i, r in enumerate(top5, 1):
             uid = r[a1]
             nick = uid
@@ -670,7 +745,7 @@ class ccb(Star):
                     nick = stranger_info.get("nick", nick)
                 except:
                     pass
-            msg += f"{i}. {nick} - 累计注入：{float(r[a3]):.2f}ml\\n"
+            msg += f"{i}. {nick} - 累计注入：{float(r[a3]):.2f}ml\n"
         yield event.plain_result(msg)
 
     # ── /ccbinfo ────────────────────────────────────
@@ -684,8 +759,7 @@ class ccb(Star):
         self_id = str(event.get_self_id())
         target_user_id = self._get_target_user_id(event)
 
-        all_data = self.read_data()
-        group_data = all_data.get(group_id, [])
+        group_data, _ = self._get_group_records(group_id)
 
         record = next((r for r in group_data if r.get(a1) == target_user_id), None)
         if not record:
@@ -755,7 +829,7 @@ class ccb(Star):
         if not self._check_group(group_id):
             return
 
-        group_data = self.read_data().get(group_id, [])
+        group_data, _ = self._get_group_records(group_id)
         if not group_data:
             yield event.plain_result("当前群暂无ccb记录")
             return
@@ -779,7 +853,7 @@ class ccb(Star):
         entries.sort(key=lambda x: x[1], reverse=True)
         top5 = entries[:5]
 
-        msg = "单次最大注入排行榜 TOP5：\\n"
+        msg = "单次最大注入排行榜 TOP5：\n"
         for i, (r, max_val) in enumerate(top5, 1):
             uid = r.get(a1)
             producer_id = None
@@ -814,7 +888,7 @@ class ccb(Star):
                 except Exception:
                     pass
 
-            msg += f"{i}. {nick} - 单次最大：{max_val:.2f}ml（{producer_nick}）\\n"
+            msg += f"{i}. {nick} - 单次最大：{max_val:.2f}ml（{producer_nick}）\n"
 
         yield event.plain_result(msg)
 
@@ -830,17 +904,17 @@ class ccb(Star):
         if not self._check_group(group_id):
             return
 
-        all_data = self.read_data()
-        group_data = all_data.get(group_id, [])
+        group_data, actor_actions = self._get_group_records(group_id)
         if not group_data:
             yield event.plain_result("当前群暂无ccb记录")
             return
 
-        actor_actions = {}
-        for record in group_data:
-            ccb_by = record.get(a4, {})
-            for actor_id, info in ccb_by.items():
-                actor_actions[actor_id] = actor_actions.get(actor_id, 0) + info.get("count", 0)
+        if not actor_actions:
+            actor_actions = {}
+            for record in group_data:
+                ccb_by = record.get(a4, {})
+                for actor_id, info in ccb_by.items():
+                    actor_actions[actor_id] = actor_actions.get(actor_id, 0) + info.get("count", 0)
 
         ranking = []
         for record in group_data:
@@ -854,7 +928,7 @@ class ccb(Star):
         ranking.sort(key=lambda x: x[1], reverse=True)
         top5 = ranking[:5]
 
-        msg = "💎 小南梁 TOP5 💎\\n"
+        msg = "💎 小南梁 TOP5 💎\n"
         for idx, (uid, xnn_val) in enumerate(ranking[:5], 1):
             nick = uid
             if event.get_platform_name() == "aiocqhttp":
@@ -865,7 +939,7 @@ class ccb(Star):
                     nick = info.get("nick", nick)
                 except:
                     pass
-            msg += f"{idx}. {nick} - XNN值：{xnn_val:.2f} \\n"
+            msg += f"{idx}. {nick} - XNN值：{xnn_val:.2f} \n"
 
         yield event.plain_result(msg)
 
@@ -921,10 +995,29 @@ class ccb(Star):
             all_data.pop(group_id, None)
         self.write_data(all_data)
 
+        removed_log = 0
+        try:
+            logs = self.read_log()
+            new_logs = []
+            for entry in logs:
+                same_group = str(entry.get("group")) == group_id
+                related_user = str(entry.get("target")) == target_user_id or str(entry.get("executor")) == target_user_id
+                if same_group and related_user:
+                    removed_log += 1
+                    continue
+                new_logs.append(entry)
+            if removed_log:
+                self._ensure_data_dir()
+                with open(LOG_FILE, "w", encoding="utf-8") as lf:
+                    json.dump(new_logs, lf, ensure_ascii=False, indent=2)
+        except Exception as e:
+            logger.warning(f"clear log error: {e}")
+
         msg = (
             f"🧹 已清除 {target_nick} 的 CCB 记录：\n"
             f"• 删除自身被CCB记录：{removed_self} 条\n"
             f"• 移除朝壁他人记录：{removed_from_others} 次\n"
+            f"• 移除完整日志记录：{removed_log} 条\n"
             f"• 相关数据已重新校准"
         )
         yield event.plain_result(msg)
