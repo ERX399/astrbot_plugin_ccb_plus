@@ -194,15 +194,18 @@ class ccb(Star):
             display_settings.get("top_limit", config.get("top_limit", 10)),
             10
         )))
-        self.super_crit_enabled = admin_settings.get(
+        self.admin_crit_multiplier_enabled = admin_settings.get(
+            "crit_multiplier_enabled",
+            admin_settings.get("super_crit_enabled", config.get("super_crit_enabled", False))
+        )
+        self.admin_crit_multiplier = _safe_float(
+            admin_settings.get(
+                "crit_multiplier",
+                admin_settings.get("super_crit_multiplier", config.get("super_crit_multiplier", 5.0))
+            ),
+            5.0
+        )
 
-            "super_crit_enabled",
-            config.get("super_crit_enabled", False)
-        )
-        self.super_crit_multiplier = admin_settings.get(
-            "super_crit_multiplier",
-            config.get("super_crit_multiplier", 5.0)
-        )
         self.admin_extra_crit_enabled = admin_settings.get(
             "extra_crit_enabled",
             config.get("admin_extra_crit_enabled", False)
@@ -854,8 +857,9 @@ class ccb(Star):
 
         if _random_module.random() < crit_prob:
             mult = 2.0
-            if self.super_crit_enabled and is_admin_actor:
-                mult = float(self.super_crit_multiplier)
+            if self.admin_crit_multiplier_enabled and is_admin_actor:
+                mult = self.admin_crit_multiplier
+
             V = round(V * mult, 2)
             crit = True
 

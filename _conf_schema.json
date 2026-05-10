@@ -119,23 +119,24 @@
             "type": "int",
             "default": 10,
             "hint": "所有 TOP 榜默认显示条数，支持 1~100；命令也可追加数量，如 /ccbtop 20。超过 10 条会强制使用合并转发"
-
           }
-
         }
       },
-      "super_crit_enabled": {
-        "description": "是否启用管理员超级暴击",
+      "crit_multiplier_enabled": {
+
+
+        "description": "是否启用管理员暴击倍率",
         "type": "bool",
         "default": false,
-        "hint": "开启后，AstrBot管理员触发暴击时自动使用超级倍率，无需指令开关"
+        "hint": "开启后，AstrBot 管理员触发暴击时自动使用自定义暴击倍率"
       },
-      "super_crit_multiplier": {
-        "description": "管理员超级暴击倍率",
+      "crit_multiplier": {
+        "description": "管理员暴击倍率",
         "type": "float",
         "default": 5.0,
-        "hint": "管理员暴击时的注入量倍率（默认5.0，即5倍）"
+        "hint": "管理员触发暴击时的注入量倍率（默认 5.0，即 5 倍）"
       },
+
       "extra_crit_enabled": {
         "description": "是否启用管理员额外暴击率",
         "type": "bool",
