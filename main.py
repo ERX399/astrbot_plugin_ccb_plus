@@ -94,13 +94,13 @@ class ccb(Star):
         self.crit_prob = self.config.get("crit_prob")
         self.is_log = self.config.get("is_log")
 
-        # 显示设置（兼容旧版顶层配置）
-        display_settings = config.get("display_settings", {}) or {}
-        self.show_avatar = display_settings.get("show_avatar", config.get("show_avatar", True))
-        self.use_forward_message = display_settings.get("use_forward_message", config.get("use_forward_message", False))
-
         # 管理员折叠配置（兼容旧版顶层配置）
         admin_settings = config.get("admin_settings", {}) or {}
+
+        # 显示设置：新版位于 admin_settings.display_settings；兼容旧版顶层 display_settings
+        display_settings = admin_settings.get("display_settings", config.get("display_settings", {}) or {}) or {}
+        self.show_avatar = display_settings.get("show_avatar", config.get("show_avatar", True))
+        self.use_forward_message = display_settings.get("use_forward_message", config.get("use_forward_message", False))
         self.super_crit_enabled = admin_settings.get(
             "super_crit_enabled",
             config.get("super_crit_enabled", False)
@@ -154,17 +154,61 @@ class ccb(Star):
                     return 0
         return 0
 
+    def _normalize_admin_ids(self, value) -> list[str]:
+        """兼容 admin_qq/admin_list 的不同格式，统一转换为 QQ 号字符串列表。"""
+        if not value:
+            return []
+        if isinstance(value, (str, int)):
+            raw_items = str(value).replace(",", "\n").replace("，", "\n").splitlines()
+        elif isinstance(value, (list, tuple, set)):
+            raw_items = value
+        else:
+            raw_items = [value]
+
+        ids = []
+        for item in raw_items:
+            if isinstance(item, dict):
+                item = item.get("qq") or item.get("id") or item.get("user_id") or item.get("admin_qq")
+            uid = str(item).strip()
+            if uid and uid not in ids:
+                ids.append(uid)
+        return ids
+
+    def _get_admin_ids(self) -> list[str]:
+        """获取 AstrBot 管理员 QQ；优先使用新版配置项 admin_qq，兼容旧 admin_list。"""
+        admin_ids = []
+        for attr in ("admin_qq", "admin_list"):
+            try:
+                admin_ids.extend(self._normalize_admin_ids(getattr(self.context, attr, None)))
+            except Exception:
+                pass
+
+        # 部分 AstrBot 版本会把配置挂在 context.config / context.core_config / context.astrbot_config
+        for cfg_attr in ("config", "core_config", "astrbot_config"):
+            try:
+                cfg = getattr(self.context, cfg_attr, None)
+                if isinstance(cfg, dict):
+                    admin_ids.extend(self._normalize_admin_ids(cfg.get("admin_qq") or cfg.get("admin_list")))
+                elif cfg is not None:
+                    getter = getattr(cfg, "get", None)
+                    if callable(getter):
+                        admin_ids.extend(self._normalize_admin_ids(getter("admin_qq") or getter("admin_list")))
+            except Exception:
+                pass
+
+        result = []
+        for uid in admin_ids:
+            if uid and uid not in result:
+                result.append(uid)
+        return result
+
     async def _is_admin(self, event: AstrMessageEvent) -> bool:
         try:
-            return event.is_admin()
+            if event.is_admin():
+                return True
         except Exception:
             pass
-        try:
-            admins = self.context.admin_list
-            return str(event.get_sender_id()) in [str(a) for a in admins]
-        except Exception:
-            pass
-        return False
+        return str(event.get_sender_id()) in self._get_admin_ids()
 
     def _recalc_max(self, item: dict):
         total_vol = float(item.get(a3, 0))
@@ -195,14 +239,20 @@ class ccb(Star):
             logger.error(f"read error: {e}")
         return {}
 
+    def _ensure_data_dir(self):
+        """确保 data 目录存在，避免首次写入日志/数据失败。"""
+        data_dir = os.path.dirname(DATA_FILE) or "."
+        os.makedirs(data_dir, exist_ok=True)
+
     def write_data(self, data):
         try:
-            with open(DATA_FILE, "w") as f:
+            self._ensure_data_dir()
+            with open(DATA_FILE, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
         except Exception as e:
             logger.error(f"write error: {e}")
 
-    def append_log(self, gid, eid, tid, dur, vol):
+    def append_log(self, gid, eid, tid, dur, vol, extra: dict | None = None):
         try:
             if os.path.exists(LOG_FILE):
                 with open(LOG_FILE, 'r', encoding='utf-8') as lf:
@@ -215,11 +265,38 @@ class ccb(Star):
             else:
                 logs = []
             entry = {"group": gid, "executor": eid, "target": tid, "time": dur, "vol": str(round(float(vol), 2))}
+            if isinstance(extra, dict):
+                entry.update(extra)
             logs.append(entry)
             with open(LOG_FILE, 'w', encoding='utf-8') as lf:
                 json.dump(logs, lf, ensure_ascii=False, indent=2)
         except Exception as e:
             logger.error(f"append_log error: {e}")
+
+    def _build_log_extra(self, group_data: list, target_user_id: str, executor_id: str, crit: bool = False) -> dict:
+        """为完整日志补充当前统计快照，保留原日志字段并追加次数/累计等信息。"""
+        target_record = next((r for r in group_data if r.get(a1) == target_user_id), {}) or {}
+        ccb_by = target_record.get(a4, {}) or {}
+        executor_info = ccb_by.get(executor_id, {}) or {}
+
+        executor_total_count = 0
+        executor_target_count = int(executor_info.get("count", 0) or 0)
+        for rec in group_data:
+            try:
+                executor_total_count += int(((rec.get(a4, {}) or {}).get(executor_id, {}) or {}).get("count", 0) or 0)
+            except Exception:
+                pass
+
+        return {
+            "target_count": int(target_record.get(a2, 0) or 0),
+            "target_total_vol": round(float(target_record.get(a3, 0) or 0), 2),
+            "target_max_vol": round(float(target_record.get(a5, 0) or 0), 2),
+            "executor_target_count": executor_target_count,
+            "executor_total_count": executor_total_count,
+            "is_first": bool(executor_info.get("first", False)),
+            "is_max": bool(executor_info.get("max", False)),
+            "crit": bool(crit)
+        }
 
     def _save_white_list(self):
         try:
@@ -229,14 +306,9 @@ class ccb(Star):
             logger.warning(f"save white_list error: {e}")
 
     def _sync_default_white_list(self):
-        """默认把AstrBot管理员加入 white_list，并写回配置以便面板显示。"""
+        """默认把 AstrBot 管理员加入 white_list，并写回配置以便面板显示。"""
         changed = False
-        try:
-            admin_ids = [str(a) for a in getattr(self.context, "admin_list", [])]
-        except Exception:
-            admin_ids = []
-
-        for uid in admin_ids:
+        for uid in self._get_admin_ids():
             if uid and uid not in self.white_list:
                 self.white_list.append(uid)
                 changed = True
@@ -460,7 +532,14 @@ class ccb(Star):
 
                         if is_log:
                             try:
-                                self.append_log(group_id, send_id, target_user_id, duration, V)
+                                self.append_log(
+                                    group_id,
+                                    send_id,
+                                    target_user_id,
+                                    duration,
+                                    V,
+                                    self._build_log_extra(group_data, target_user_id, send_id, crit)
+                                )
                             except Exception as e:
                                 logger.warning(f"log error: {e}")
 
@@ -488,10 +567,16 @@ class ccb(Star):
                     )
                     nickname = stranger_info.get("nick", nickname)
 
-                texts = [
-                    f"你和{nickname}发生了{duration}min长的ccb行为，向ta注入了{V:.2f}ml的生命因子",
-                    "这是ta的初体验"
-                ]
+                if crit:
+                    texts = [
+                        f"你和{nickname}发生了{duration}min长的ccb行为，向ta注入了 💥 暴击！{V:.2f}ml的生命因子",
+                        "这是ta的初体验"
+                    ]
+                else:
+                    texts = [
+                        f"你和{nickname}发生了{duration}min长的ccb行为，向ta注入了{V:.2f}ml的生命因子",
+                        "这是ta的初体验"
+                    ]
                 async for result in self._send_ccb_result(event, texts, pic):
                     yield result
 
@@ -509,7 +594,14 @@ class ccb(Star):
 
                 if is_log:
                     try:
-                        self.append_log(group_id, send_id, target_user_id, duration, V)
+                        self.append_log(
+                            group_id,
+                            send_id,
+                            target_user_id,
+                            duration,
+                            V,
+                            self._build_log_extra(group_data, target_user_id, send_id, crit)
+                        )
                     except Exception as e:
                         logger.warning(f"log error: {e}")
 

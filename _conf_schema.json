@@ -5,65 +5,46 @@
     "default": false,
     "hint": "是否独立保留每一条ccb记录，包括双方与注入量。"
   },
-  "display_settings": {
-    "description": "显示设置",
-    "type": "object",
-    "hint": "点击展开配置消息展示方式。",
-    "items": {
-      "show_avatar": {
-        "description": "是否显示目标头像",
-        "type": "bool",
-        "default": true,
-        "hint": "关闭后，CCB结果不再附带目标头像图片。"
-      },
-      "use_forward_message": {
-        "description": "是否使用合并转发发送结果",
-        "type": "bool",
-        "default": false,
-        "hint": "开启后，CCB结果会尝试以合并转发形式发送；不支持的平台会自动回退普通消息。"
-      }
-    }
-  },
   "yw_window": {
     "description": "触发赛博阳痿的窗口时间（秒）",
     "type": "int",
     "default": 60,
-    "hint": "统计多少秒内的调用次数。"
+    "hint": "统计多少秒内的调用次数"
   },
   "yw_threshold": {
     "description": "窗口时间内最大ccb数",
     "type": "int",
     "default": 5,
-    "hint": "同一人多少次请求后会被禁用。"
+    "hint": "同一人多少次请求后会被禁用"
   },
   "yw_ban_duration": {
     "description": "养胃时长（秒）",
     "type": "int",
     "default": 900,
-    "hint": "被触发限流后禁用多长时间。"
+    "hint": "被触发限流后禁用多长时间"
   },
   "yw_probability": {
     "description": "随机养胃概率",
     "type": "float",
     "default": 0.1,
-    "hint": "每次 CCB 完成后，有多大概率养胃。"
+    "hint": "每次 CCB 完成后，有多大概率养胃"
   },
   "white_list": {
     "description": "不能进行ccb的id列表",
     "type": "list",
     "default": [],
-    "hint": "目标在此列表中时不能被ccb；插件会默认把AstrBot管理员和机器人自身ID加入此列表。"
+    "hint": "目标在此列表中时不能被 CCB；插件会默认把 AstrBot 配置项 admin_qq 中的管理员和机器人自身 ID 加入此列表。"
   },
   "group_white_list": {
     "description": "白名单群聊列表",
     "type": "list",
     "default": [],
-    "hint": "仅在列表中的群聊可使用本插件功能；留空则不限制。"
+    "hint": "仅在列表中的群聊可使用本插件功能；留空则不限制"
   },
   "group_configs": {
     "type": "template_list",
     "description": "群聊单独配置",
-    "hint": "点击添加，为不同群设置单独的 CCB 限制参数。",
+    "hint": "点击添加，为不同群设置单独的 CCB 限制参数",
     "templates": {
       "group_setting": {
         "name": "群聊配置",
@@ -84,7 +65,7 @@
             "description": "每人每日CCB次数上限",
             "type": "int",
             "default": 0,
-            "hint": "此群内每人每天最多执行多少次 /ccb；0 或负数表示不限制。"
+            "hint": "此群内每人每天最多执行多少次 /ccb；0 或负数表示不限制"
           }
         }
       }
@@ -94,48 +75,67 @@
     "description": "是否允许0721",
     "type": "bool",
     "default": false,
-    "hint": "为true时，当ccb指令未指定对象时进行0721。"
+    "hint": "为true时，当ccb指令未指定对象时进行0721"
   },
   "crit_prob": {
     "description": "暴击概率",
     "type": "float",
     "default": 0.2,
-    "hint": "ccb时暴击的概率。"
+    "hint": "ccb时暴击的概率"
   },
   "admin_settings": {
     "description": "管理员设置",
     "type": "object",
-    "hint": "点击展开配置管理员专属暴击增强参数。",
+    "hint": "点击展开配置管理员专属能力、豁免与显示选项",
     "items": {
+      "display_settings": {
+        "description": "显示设置",
+        "type": "object",
+        "hint": "点击展开配置 CCB 结果消息展示方式",
+        "items": {
+          "show_avatar": {
+            "description": "是否显示目标头像",
+            "type": "bool",
+            "default": true,
+            "hint": "关闭后，CCB 结果不再附带目标头像图片"
+          },
+          "use_forward_message": {
+            "description": "是否使用合并转发发送结果",
+            "type": "bool",
+            "default": false,
+            "hint": "开启后，CCB 结果会尝试以合并转发形式发送；不支持的平台会自动回退普通消息"
+          }
+        }
+      },
       "super_crit_enabled": {
         "description": "是否启用管理员超级暴击",
         "type": "bool",
         "default": false,
-        "hint": "开启后，AstrBot管理员触发暴击时自动使用超级倍率，无需指令开关。"
+        "hint": "开启后，AstrBot管理员触发暴击时自动使用超级倍率，无需指令开关"
       },
       "super_crit_multiplier": {
         "description": "管理员超级暴击倍率",
         "type": "float",
         "default": 5.0,
-        "hint": "管理员暴击时的注入量倍率（默认5.0，即5倍）。"
+        "hint": "管理员暴击时的注入量倍率（默认5.0，即5倍）"
       },
       "extra_crit_enabled": {
         "description": "是否启用管理员额外暴击率",
         "type": "bool",
         "default": false,
-        "hint": "开启后，AstrBot管理员自动获得额外暴击率，无需指令开关。"
+        "hint": "开启后，AstrBot管理员自动获得额外暴击率，无需指令开关"
       },
       "extra_crit_bonus": {
         "description": "管理员额外暴击率",
         "type": "float",
         "default": 0.3,
-        "hint": "管理员在普通暴击概率基础上额外增加的暴击概率，最终概率限制在0~1。"
+        "hint": "管理员在普通暴击概率基础上额外增加的暴击概率，最终概率限制在0~1"
       },
       "exempt_yw": {
-        "description": "管理员豁免养胃",
+        "description": "管理员豁免限制",
         "type": "bool",
         "default": false,
-        "hint": "开启后，AstrBot管理员不会触发频率养胃和随机养胃，也不会被养胃状态拦截。"
+        "hint": "开启后，AstrBot 管理员执行 /ccb 时不受每日次数上限、频率养胃、随机养胃和已有养胃状态限制；仅对管理员本人发起 CCB 生效"
       }
     }
   }
