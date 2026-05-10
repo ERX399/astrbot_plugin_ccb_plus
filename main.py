@@ -346,7 +346,14 @@ class ccb(Star):
             records, actor_actions = self._build_group_log_records(group_id)
             if records:
                 return records, actor_actions
-        group_data = self.read_data().get(str(group_id), [])
+        all_data = self.read_data()
+        # 兼容群号 key 为字符串或整数
+        group_data = all_data.get(str(group_id), [])
+        if not group_data:
+            try:
+                group_data = all_data.get(int(group_id), [])
+            except (ValueError, TypeError):
+                pass
         return (group_data if isinstance(group_data, list) else []), {}
 
     def _build_log_extra(self, group_data: list, target_user_id: str, executor_id: str, crit: bool = False) -> dict:
@@ -813,8 +820,8 @@ class ccb(Star):
                 pass
 
         msg = (
-            f"【{record.get(a1)} 】\n"
-            f"• 破壁人：{first_nick}\n"
+            f"【{record.get(a1)}】({target_user_id})\n"
+            f"• 破壁人：{first_nick}({first_actor})\n"
             f"• 北朝：{total_num}\n"
             f"• 朝壁：{cb_total}\n"
             f"• 诗经：{total_vol:.2f}ml\n"
@@ -889,7 +896,7 @@ class ccb(Star):
                 except Exception:
                     pass
 
-            msg += f"{i}. {nick}({uid}) - 单次最大：{max_val:.2f}ml（{producer_nick}）\n"
+            msg += f"{i}. {nick}({uid}) - 单次最大：{max_val:.2f}ml（{producer_nick}({producer_id})）\n" if producer_id else f"{i}. {nick}({uid}) - 单次最大：{max_val:.2f}ml（{producer_nick}）\n"
 
         yield event.plain_result(msg.rstrip())
 
