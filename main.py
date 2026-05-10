@@ -692,6 +692,9 @@ class ccb(Star):
             for actor_id, info in ccb_by.items():
                 result[actor_id] = result.get(actor_id, 0) + _safe_int(info.get("count", 0), 0)
         return result
+    def _rank_user_line(self, index: int, nick: str, uid: str, value_text: str) -> str:
+        """格式化排行榜用户行；昵称和 QQ 分行，避免长昵称导致排版混乱。"""
+        return f"{index}. {nick}\n- ({uid}) - {value_text}"
 
     async def _send_top_rank(self, event: AstrMessageEvent, records: list[dict], title_tpl: str, value_label: str = "次数"):
         count = self._get_top_count(event)
@@ -700,8 +703,9 @@ class ccb(Star):
         for i, record in enumerate(top_items, 1):
             uid = str(record.get(a1, "未知"))
             nick = await self._get_nickname(event, uid)
-            lines.append(f"{i}. {nick}({uid}) - {value_label}：{_safe_int(record.get(a2, 0), 0)}")
+            lines.append(self._rank_user_line(i, nick, uid, f"{value_label}：{_safe_int(record.get(a2, 0), 0)}"))
         return await self._send_rank_result(event, title_tpl.format(n=len(top_items)), lines, len(top_items))
+
 
     async def _send_vol_rank(self, event: AstrMessageEvent, records: list[dict], title_tpl: str, value_label: str = "累计注入"):
         count = self._get_top_count(event)
@@ -710,7 +714,8 @@ class ccb(Star):
         for i, record in enumerate(top_items, 1):
             uid = str(record.get(a1, "未知"))
             nick = await self._get_nickname(event, uid)
-            lines.append(f"{i}. {nick}({uid}) - {value_label}：{_safe_float(record.get(a3, 0), 0.0):.2f}ml")
+            lines.append(self._rank_user_line(i, nick, uid, f"{value_label}：{_safe_float(record.get(a3, 0), 0.0):.2f}ml"))
+
         return await self._send_rank_result(event, title_tpl.format(n=len(top_items)), lines, len(top_items))
 
     async def _send_max_rank(self, event: AstrMessageEvent, records: list[dict], title_tpl: str):
@@ -724,9 +729,11 @@ class ccb(Star):
             nick = await self._get_nickname(event, uid)
             producer_nick = await self._get_nickname(event, producer_id) if producer_id else "未知"
             if producer_id:
-                lines.append(f"{i}. {nick}({uid}) - 单次最大：{max_val:.2f}ml（{producer_nick}({producer_id})）")
+                value_text = f"单次最大：{max_val:.2f}ml；生产者：{producer_nick}({producer_id})"
             else:
-                lines.append(f"{i}. {nick}({uid}) - 单次最大：{max_val:.2f}ml（{producer_nick}）")
+                value_text = f"单次最大：{max_val:.2f}ml；生产者：{producer_nick}"
+            lines.append(self._rank_user_line(i, nick, uid, value_text))
+
         return await self._send_rank_result(event, title_tpl.format(n=len(top_items)), lines, len(top_items))
 
     async def _send_xnn_rank(self, event: AstrMessageEvent, records: list[dict], actor_actions: dict | None, title_tpl: str):
@@ -746,7 +753,8 @@ class ccb(Star):
         lines = []
         for i, (uid, xnn_val) in enumerate(top_items, 1):
             nick = await self._get_nickname(event, uid)
-            lines.append(f"{i}. {nick}({uid}) - XNN值：{xnn_val:.2f}")
+            lines.append(self._rank_user_line(i, nick, uid, f"XNN值：{xnn_val:.2f}"))
+
         return await self._send_rank_result(event, title_tpl.format(n=len(top_items)), lines, len(top_items))
 
 
