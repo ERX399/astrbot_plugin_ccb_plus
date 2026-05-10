@@ -1289,35 +1289,21 @@ class ccb(Star):
         if result:
             yield result
 
-
     # ── /ccbclear (管理员) ───────────────────────────
-
+    @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("ccbclear")
     async def cmd_ccbclear(self, event: AstrMessageEvent):
-        """管理员指令：清除目标的被 CCB 与 CCB 他人记录用法：/ccbclear [@目标]；未 @ 时默认自己"""
+        """管理员指令：清除目标的被 CCB 与 CCB 他人记录。用法：/ccbclear [@目标]；未 @ 时默认自己。"""
         if not await self._is_admin(event):
             yield event.plain_result("只有 AstrBot 管理员才能使用此命令")
             return
 
         group_id = str(event.get_group_id())
-        self_id = str(event.get_self_id())
-        sender_id = str(event.get_sender_id())
-
         target_user_id = self._get_target_user_id(event)
-
-        target_nick = target_user_id
-        if event.get_platform_name() == "aiocqhttp":
-            try:
-                from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
-                assert isinstance(event, AiocqhttpMessageEvent)
-                stranger_info = await event.bot.api.call_action(
-                    'get_stranger_info', user_id=target_user_id
-                )
-                target_nick = stranger_info.get("nick", target_user_id)
-            except Exception:
-                pass
+        target_nick = await self._get_nickname(event, target_user_id)
 
         all_data = self.read_data()
+
         group_data = all_data.get(group_id, [])
 
         before_len = len(group_data)
@@ -1369,34 +1355,20 @@ class ccb(Star):
             f"• 相关数据已重新校准"
         )
         yield event.plain_result(msg)
-
     # ── /ccbnodo (管理员) ────────────────────────────
+    @filter.permission_type(filter.PermissionType.ADMIN)
     @filter.command("ccbnodo")
     async def cmd_ccbnodo(self, event: AstrMessageEvent):
-        """管理员指令：切换目标防被 CCB 状态用法：/ccbnodo [@目标]；未 @ 时默认自己"""
+        """管理员指令：切换目标防被 CCB 状态。用法：/ccbnodo [@目标]；未 @ 时默认自己。"""
         if not await self._is_admin(event):
             yield event.plain_result("只有 AstrBot 管理员才能使用此命令")
             return
 
-        self_id = str(event.get_self_id())
-        sender_id = str(event.get_sender_id())
-
         target_user_id = self._get_target_user_id(event)
-
-        target_nick = target_user_id
-        if event.get_platform_name() == "aiocqhttp":
-            try:
-                from astrbot.core.platform.sources.aiocqhttp.aiocqhttp_message_event import AiocqhttpMessageEvent
-                assert isinstance(event, AiocqhttpMessageEvent)
-                stranger_info = await event.bot.api.call_action(
-                    'get_stranger_info', user_id=target_user_id
-                )
-                target_nick = stranger_info.get("nick", target_user_id)
-            except Exception:
-                pass
-
+        target_nick = await self._get_nickname(event, target_user_id)
         if target_user_id in self.white_list:
             self.white_list.remove(target_user_id)
+
             self._save_white_list()
             yield event.plain_result(f"已解除 {target_nick} 的防CCB保护，现在可以对其CCB了")
         else:

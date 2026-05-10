@@ -3,14 +3,14 @@
     "description": "完整日志记录",
     "type": "bool",
     "default": false,
-    "hint": "是否独立保留每一条ccb记录，包括双方与注入量。"
+    "hint": "是否独立保留每一条ccb记录，包括双方与注入量"
 
   },
   "yw_window": {
     "description": "触发赛博阳痿的窗口时间（秒）",
     "type": "int",
     "default": 60,
-    "hint": "统计多少秒内的调用次数"
+    "hint": "多少秒内的调用1次"
   },
   "yw_threshold": {
     "description": "窗口时间内最大ccb数",
@@ -21,32 +21,32 @@
   "yw_ban_duration": {
     "description": "养胃时长（秒）",
     "type": "int",
-    "default": 900,
-    "hint": "被触发限流后禁用多长时间"
+    "default": 180,
+    "hint": "被触发后禁用多长时间"
   },
   "yw_probability": {
     "description": "随机养胃概率",
     "type": "float",
     "default": 0.1,
-    "hint": "每次 CCB 完成后，有多大概率养胃"
+    "hint": "每次 CCB 后，有多大概率养胃"
   },
   "white_list": {
     "description": "不能进行ccb的id列表",
     "type": "list",
     "default": [],
-    "hint": "目标在此列表中时不能被 CCB；插件会默认把 AstrBot 配置项 admin_qq 中的管理员和机器人自身 ID 加入此列表。"
+    "hint": "目标在此列表中时不能被 CCB；默认把admin和bot加入此列表"
 
   },
   "group_white_list": {
     "description": "白名单群聊列表",
     "type": "list",
     "default": [],
-    "hint": "仅在列表中的群聊可使用本插件功能；留空则不限制"
+    "hint": "仅列表群聊可用插件功能；留空则不限制"
   },
   "group_configs": {
     "type": "template_list",
     "description": "群聊单独配置",
-    "hint": "点击添加，为不同群设置单独的 CCB 限制参数",
+    "hint": "点击添加为不同群设置单独的 CCB 限制参数",
     "templates": {
       "group_setting": {
         "name": "群聊配置",
@@ -67,14 +67,14 @@
             "description": "每人每日CCB次数上限",
             "type": "int",
             "default": 0,
-            "hint": "此群内每人每天最多执行多少次 /ccb；0 或负数表示不限制"
+            "hint": "此群内每人每天最多执行多少次 /ccb；0 或负数则不限制"
           }
         }
       }
     }
   },
   "self_ccb": {
-    "description": "是否允许0721",
+    "description": "是否允许0721(紫薇)",
     "type": "bool",
     "default": false,
     "hint": "为true时，当ccb指令未指定对象时进行0721"
@@ -88,37 +88,37 @@
   "admin_settings": {
     "description": "管理员设置",
     "type": "object",
-    "hint": "点击展开配置管理员专属能力、豁免与显示选项",
+    "hint": "配置管理员能力、豁免与显示选项",
     "items": {
       "display_settings": {
         "description": "显示设置",
         "type": "object",
-        "hint": "点击展开配置 CCB 结果消息展示方式",
+        "hint": "配置 CCB 结果消息展示方式",
         "items": {
           "show_avatar": {
             "description": "是否显示目标头像",
             "type": "bool",
             "default": true,
-            "hint": "关闭后，CCB 结果不再附带目标头像图片"
+            "hint": "关闭后，CCB 结果不再附带目标头像"
           },
           "use_forward_message": {
-            "description": "是否使用合并转发发送结果",
+            "description": "是否以合并转发发送结果",
             "type": "bool",
             "default": false,
-            "hint": "开启后，CCB 结果会尝试以合并转发形式发送；不支持的平台会自动回退普通消息"
+            "hint": "开启后，CCB结果会以合并转发形式发送；不支持回退普通消息"
           },
           "forward_node_name": {
-            "description": "合并转发节点名称",
+            "description": "合并转发显示名称",
             "type": "string",
-            "default": "CCB PLUS Beta",
+            "default": "CCB",
 
-            "hint": "合并转发消息中每个节点显示的外显名称"
+            "hint": "合并转发的外显名称"
           },
           "top_limit": {
             "description": "排行榜默认显示数量",
             "type": "int",
             "default": 10,
-            "hint": "所有 TOP 榜默认显示条数，支持 1~100；命令也可追加数量，如 /ccbtop 20。超过 10 条会强制使用合并转发"
+            "hint": "所有 TOP 榜默认显示条数，支持 1~100；命令也可追加数量，如 /ccbtop 20超过 10 条会强制使用合并转发"
           }
         }
       },
