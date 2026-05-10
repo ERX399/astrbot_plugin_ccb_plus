@@ -104,6 +104,12 @@
             "type": "bool",
             "default": false,
             "hint": "开启后，CCB 结果会尝试以合并转发形式发送；不支持的平台会自动回退普通消息"
+          },
+          "forward_node_name": {
+            "description": "合并转发节点名称",
+            "type": "string",
+            "default": "CCB PLUS Beta",
+            "hint": "合并转发消息中每个节点显示的外显名称"
           }
         }
       },

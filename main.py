@@ -101,6 +101,7 @@ class ccb(Star):
         display_settings = admin_settings.get("display_settings", config.get("display_settings", {}) or {}) or {}
         self.show_avatar = display_settings.get("show_avatar", config.get("show_avatar", True))
         self.use_forward_message = display_settings.get("use_forward_message", config.get("use_forward_message", False))
+        self.forward_node_name = display_settings.get("forward_node_name", "CCB PLUS Beta")
         self.super_crit_enabled = admin_settings.get(
             "super_crit_enabled",
             config.get("super_crit_enabled", False)
@@ -122,16 +123,12 @@ class ccb(Star):
         # 群聊单独限制配置模块
         self.group_configs = config.get("group_configs", []) or []
         self.daily_limiter = DailyGroupLimiter(DAILY_LIMIT_FILE)
-        logger.info("[CCB_PLUS] Plugin loaded successfully. group_white_list=%s, is_log=%s", self.group_white_list, self.is_log)
 
     def _check_group(self, group_id: str) -> bool:
         gl = [str(g) for g in self.group_white_list]
         if not gl:
             return True
-        allowed = str(group_id) in gl
-        if not allowed:
-            logger.info(f"[CCB_PLUS] Group {group_id} not in group_white_list, command ignored.")
-        return allowed
+        return str(group_id) in gl
 
     def _iter_group_configs(self):
         """兼容 AstrBot template_list 可能返回的 list/dict 结构。"""
@@ -450,7 +447,7 @@ class ccb(Star):
                 nodes.append({
                     "type": "node",
                     "data": {
-                        "name": "CCB PLUS Beta",
+                        "name": self.forward_node_name,
                         "uin": self_id,
                         "content": message
                     }
@@ -470,10 +467,8 @@ class ccb(Star):
     @filter.command("ccb")
     async def cmd_ccb(self, event: AstrMessageEvent):
         """对目标进行 CCB。用法：/ccb [@目标]；未 @ 时默认自己。"""
-        logger.info(f"[CCB_PLUS] cmd_ccb invoked, group={event.get_group_id()}, sender={event.get_sender_id()}, raw={event.get_message_str()}")
         group_id = str(event.get_group_id())
         if not self._check_group(group_id):
-            logger.info(f"[CCB_PLUS] cmd_ccb blocked by group_white_list, group={group_id}")
             return
         self._sync_event_bot_white_list(event)
 
@@ -701,7 +696,7 @@ class ccb(Star):
     # ── /ccbtop ──────────────────────────────────────
     @filter.command("ccbtop")
     async def cmd_ccbtop(self, event: AstrMessageEvent):
-        """查看当前群被 CCB 次数排行榜 TOP5。用法：/ccbplus top"""
+        """查看当前群被 CCB 次数排行榜 TOP5。用法：/ccbtop"""
         group_id = str(event.get_group_id())
         if not self._check_group(group_id):
             return
@@ -729,7 +724,7 @@ class ccb(Star):
     # ── /ccbvol ─────────────────────────────────────
     @filter.command("ccbvol")
     async def cmd_ccbvol(self, event: AstrMessageEvent):
-        """查看当前群累计注入量排行榜 TOP5。用法：/ccbplus vol"""
+        """查看当前群累计注入量排行榜 TOP5。用法：/ccbvol"""
         group_id = str(event.get_group_id())
         if not self._check_group(group_id):
             return
@@ -757,7 +752,7 @@ class ccb(Star):
     # ── /ccbinfo ────────────────────────────────────
     @filter.command("ccbinfo")
     async def cmd_ccbinfo(self, event: AstrMessageEvent):
-        """查询某人的 CCB 统计信息。用法：/ccbplus info [@目标]；未 @ 时查询自己。"""
+        """查询某人的 CCB 统计信息。用法：/ccbinfo [@目标]；未 @ 时查询自己。"""
         group_id = str(event.get_group_id())
         if not self._check_group(group_id):
             return
@@ -830,7 +825,7 @@ class ccb(Star):
     # ── /ccbmax ─────────────────────────────────────
     @filter.command("ccbmax")
     async def cmd_ccbmax(self, event: AstrMessageEvent):
-        """查看当前群单次最大注入排行榜 TOP5。用法：/ccbplus max"""
+        """查看当前群单次最大注入排行榜 TOP5。用法：/ccbmax"""
         group_id = str(event.get_group_id())
         if not self._check_group(group_id):
             return
@@ -901,7 +896,7 @@ class ccb(Star):
     # ── /xnn ────────────────────────────────────────
     @filter.command("xnn")
     async def cmd_xnn(self, event: AstrMessageEvent):
-        """查看当前群小南梁排行榜 TOP5。用法：/ccbplus xnn"""
+        """查看当前群小南梁排行榜 TOP5。用法：/xnn"""
         w_num = 1.0
         w_vol = 0.1
         w_action = 0.5
@@ -952,7 +947,7 @@ class ccb(Star):
     # ── /ccbclear (管理员) ───────────────────────────
     @filter.command("ccbclear")
     async def cmd_ccbclear(self, event: AstrMessageEvent):
-        """管理员指令：清除目标的被 CCB 与 CCB 他人记录。用法：/ccbplus clear [@目标]；未 @ 时默认自己。"""
+        """管理员指令：清除目标的被 CCB 与 CCB 他人记录。用法：/ccbclear [@目标]；未 @ 时默认自己。"""
         if not await self._is_admin(event):
             yield event.plain_result("只有 AstrBot 管理员才能使用此命令")
             return
@@ -1031,7 +1026,7 @@ class ccb(Star):
     # ── /ccbnodo (管理员) ────────────────────────────
     @filter.command("ccbnodo")
     async def cmd_ccbnodo(self, event: AstrMessageEvent):
-        """管理员指令：切换目标防被 CCB 状态。用法：/ccbplus nodo [@目标]；未 @ 时默认自己。"""
+        """管理员指令：切换目标防被 CCB 状态。用法：/ccbnodo [@目标]；未 @ 时默认自己。"""
         if not await self._is_admin(event):
             yield event.plain_result("只有 AstrBot 管理员才能使用此命令")
             return
