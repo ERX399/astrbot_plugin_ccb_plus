@@ -470,8 +470,10 @@ class ccb(Star):
     @filter.command("ccb")
     async def cmd_ccb(self, event: AstrMessageEvent):
         """对目标进行 CCB。用法：/ccb [@目标]；未 @ 时默认自己。"""
+        logger.info(f"[CCB_PLUS] cmd_ccb invoked, group={event.get_group_id()}, sender={event.get_sender_id()}, raw={event.get_message_str()}")
         group_id = str(event.get_group_id())
         if not self._check_group(group_id):
+            logger.info(f"[CCB_PLUS] cmd_ccb blocked by group_white_list, group={group_id}")
             return
         self._sync_event_bot_white_list(event)
 
