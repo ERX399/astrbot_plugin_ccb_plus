@@ -116,66 +116,86 @@ def _normalize_group_data(group_data) -> list[dict]:
 
 
 class DailyGroupLimiter:
-    """模块：按群聊内每人统计每日 CCB 次数"""
+    """模块：按群聊内每人统计每日 CCB 次数（带缓存优化）"""
 
     def __init__(self, file_path: str):
         self.file_path = file_path
+        self._cache = {}  # 内存缓存
+        self._last_load = 0
+        self._dirty = False
+        self._cache_ttl = 30  # 缓存30秒
 
     def _today(self) -> str:
         return _time_module.strftime("%Y-%m-%d", _time_module.localtime())
 
     def _read(self) -> dict:
+        """读取数据，优先使用缓存"""
+        now = _time_module.time()
+        # 如果缓存有效，直接返回
+        if now - self._last_load < self._cache_ttl and self._cache:
+            return self._cache
+        # 否则从文件加载
         try:
             if os.path.exists(self.file_path):
                 with open(self.file_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    return data if isinstance(data, dict) else {}
+                    if isinstance(data, dict):
+                        self._cache = data
+                        self._last_load = now
+                        return self._cache
         except Exception as e:
             logger.warning(f"read daily limit data error: {e}")
-        return {}
+        # 如果文件读取失败但有缓存，返回缓存
+        return self._cache if self._cache else {}
 
     def _write(self, data: dict):
+        """写入数据到文件"""
         try:
             data_dir = os.path.dirname(self.file_path) or "."
             os.makedirs(data_dir, exist_ok=True)
             with open(self.file_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
+            self._cache = data
+            self._last_load = _time_module.time()
+            self._dirty = False
         except Exception as e:
             logger.warning(f"write daily limit data error: {e}")
+            self._dirty = True
 
     def get_user_count(self, group_id: str, user_id: str) -> int:
-        data = self._read()
-        today = self._today()
+        """获取用户当日使用次数"""
         try:
+            data = self._read()
+            today = self._today()
             today_data = data.get(today, {})
             if not isinstance(today_data, dict):
-                today_data = {}
+                return 0
             group_data = today_data.get(str(group_id), {})
             if not isinstance(group_data, dict):
-                group_data = {}
+                return 0
             return int(group_data.get(str(user_id), 0))
         except Exception:
             return 0
 
     def can_use(self, group_id: str, user_id: str, limit: int) -> tuple[bool, int]:
+        """检查是否可以使用"""
         if limit <= 0:
             return True, 0
         used = self.get_user_count(group_id, user_id)
         return used < limit, max(0, limit - used)
 
     def increase(self, group_id: str, user_id: str, limit: int) -> int:
+        """增加使用次数"""
         if limit <= 0:
             return 0
-        data = self._read()
-        today = self._today()
-        data.setdefault(today, {}).setdefault(str(group_id), {})
-        
-        # 确保数据是字典类型
         try:
+            data = self._read()
+            today = self._today()
+            if not isinstance(data.get(today), dict):
+                data[today] = {}
+            if not isinstance(data[today].get(str(group_id)), dict):
+                data[today][str(group_id)] = {}
             group_data = data[today][str(group_id)]
-            if not isinstance(group_data, dict):
-                group_data = {}
-                data[today][str(group_id)] = group_data
             count = int(group_data.get(str(user_id), 0)) + 1
             group_data[str(user_id)] = count
             self._write(data)
@@ -857,29 +877,35 @@ class ccb(Star):
     @filter.command("ccb")
     async def cmd_ccb(self, event: AstrMessageEvent):
         """对目标进行 CCB用法：/ccb [@目标]；未 @ 时默认自己"""
-        group_id = str(event.get_group_id())
-        if not self._check_group(group_id):
-            yield event.plain_result(self._group_block_message())
-            return
-        self._sync_event_bot_white_list(event)
-
-        send_id = str(event.get_sender_id())
-        self_id = str(event.get_self_id())
-        actor_id = send_id
-        now = _time_module.time()
-        admin_exempt_yw = bool(self.admin_exempt_yw and await self._is_admin(event))
-
         try:
-            daily_limit = self._get_group_daily_limit(group_id)
-            can_use, remain = (True, 0) if admin_exempt_yw else self.daily_limiter.can_use(group_id, send_id, daily_limit)
-        except Exception as e:
-            logger.warning(f"daily limit check error, fallback to unlimited: {e}")
+            group_id = str(event.get_group_id())
+            if not self._check_group(group_id):
+                # 关键修复：群聊未授权时静默返回，不yield任何消息
+                return
+            self._sync_event_bot_white_list(event)
+
+            send_id = str(event.get_sender_id())
+            self_id = str(event.get_self_id())
+            actor_id = send_id
+            now = _time_module.time()
+            admin_exempt_yw = bool(self.admin_exempt_yw and await self._is_admin(event))
+
+            # 关键修复：简化每日限制检查，避免文件操作卡住
             daily_limit = 0
             can_use, remain = True, 0
+            if not admin_exempt_yw:
+                try:
+                    daily_limit = self._get_group_daily_limit(group_id)
+                    if daily_limit > 0:
+                        can_use, remain = self.daily_limiter.can_use(group_id, send_id, daily_limit)
+                except Exception as e:
+                    logger.warning(f"daily limit check error, fallback to unlimited: {e}")
+                    daily_limit = 0
+                    can_use, remain = True, 0
 
-        if not can_use:
-            yield event.plain_result(f"你今天在本群的 CCB 次数已达上限（{daily_limit}次），明天再来吧")
-            return
+            if not can_use:
+                yield event.plain_result(f"你今天在本群的 CCB 次数已达上限（{daily_limit}次），明天再来吧")
+                return
 
         ban_end = self.ban_list.get(actor_id, 0)
         if now < ban_end and not admin_exempt_yw:
